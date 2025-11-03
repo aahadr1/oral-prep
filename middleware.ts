@@ -1,63 +1,21 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (svg, png, jpg, jpeg, gif, webp)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };
 
-export async function middleware(req: NextRequest) {
-  let response = NextResponse.next();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const isAuthRoute = req.nextUrl.pathname.startsWith('/login') || 
-                       req.nextUrl.pathname.startsWith('/signup');
-  
-  // Allow API routes to handle their own authentication
-  const isApiRoute = req.nextUrl.pathname.startsWith('/api');
-  
-  // Allow public assets
-  const isPublicAsset = req.nextUrl.pathname.startsWith('/audio-') ||
-                        req.nextUrl.pathname.endsWith('.js') ||
-                        req.nextUrl.pathname.endsWith('.css');
-  
-  // Redirect to login if not authenticated and not on auth route or API route
-  if (!user && !isAuthRoute && !isApiRoute && !isPublicAsset) {
-    return NextResponse.redirect(new URL('/login', req.url));
-  }
-
-  // Redirect to projects if authenticated and on auth route
-  if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL('/projets', req.url));
-  }
-
-  return response;
+export function middleware(request: NextRequest) {
+  // For now, just pass through all requests
+  // This avoids any dependency issues with Edge runtime
+  return NextResponse.next();
 }
