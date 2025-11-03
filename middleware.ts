@@ -44,8 +44,13 @@ export async function middleware(req: NextRequest) {
   // Allow API routes to handle their own authentication
   const isApiRoute = req.nextUrl.pathname.startsWith('/api');
   
+  // Allow public assets
+  const isPublicAsset = req.nextUrl.pathname.startsWith('/audio-') ||
+                        req.nextUrl.pathname.endsWith('.js') ||
+                        req.nextUrl.pathname.endsWith('.css');
+  
   // Redirect to login if not authenticated and not on auth route or API route
-  if (!user && !isAuthRoute && !isApiRoute) {
+  if (!user && !isAuthRoute && !isApiRoute && !isPublicAsset) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
@@ -56,4 +61,3 @@ export async function middleware(req: NextRequest) {
 
   return response;
 }
-
