@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Ensure proper handling for Vercel deployment
+  output: undefined, // Use default Next.js output
+  
   webpack: (config, { isServer }) => {
     // Exclude canvas from client-side bundle
     if (!isServer) {
