@@ -20,6 +20,9 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
     { question: '', criteria: [''] }
   ]);
   const [error, setError] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
   const router = useRouter();
 
   // Fetch saved quizzes
@@ -46,6 +49,45 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
     setQuizDescription('');
     setQuestions([{ question: '', criteria: [''] }]);
     setShowCreateModal(true);
+  };
+
+  const handleImportQuiz = async () => {
+    if (!importText.trim()) {
+      setError('Veuillez coller du texte à analyser');
+      return;
+    }
+
+    setIsImporting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/oral-quiz/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: importText })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to import quiz');
+      }
+
+      const data = await response.json();
+      
+      // Populate the form with extracted data
+      setQuizTitle(data.title);
+      setQuizDescription(data.description);
+      setQuestions(data.questions);
+      
+      // Close import modal and open create modal
+      setShowImportModal(false);
+      setImportText('');
+      setShowCreateModal(true);
+    } catch (err) {
+      console.error('Error importing quiz:', err);
+      setError('Erreur lors de l\'analyse du texte. Veuillez réessayer.');
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleEditQuiz = (quiz: OralQuiz) => {
@@ -243,9 +285,23 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
       {(showCreateModal || showEditModal) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <h2 className="text-2xl font-bold mb-6">
-              {showEditModal ? 'Modifier le Quiz' : 'Créer un Quiz Oral'}
-            </h2>
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-2xl font-bold">
+                {showEditModal ? 'Modifier le Quiz' : 'Créer un Quiz Oral'}
+              </h2>
+              {!showEditModal && (
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 transform hover:scale-105 transition-all shadow-md flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import Intelligent
+                </button>
+              )}
+            </div>
 
             <div className="space-y-6">
               {/* Title */}
@@ -371,6 +427,76 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition"
               >
                 {showEditModal ? 'Mettre à jour' : 'Créer le Quiz'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Intelligent Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-y-auto p-6">
+            <h2 className="text-2xl font-bold mb-4">Import Intelligent de Questions</h2>
+            
+            <p className="text-gray-600 mb-6">
+              Collez votre texte ci-dessous et l&apos;IA analysera le contenu pour extraire automatiquement 
+              les questions et critères d&apos;évaluation pour votre quiz oral.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Texte à analyser
+                </label>
+                <textarea
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  rows={10}
+                  placeholder="Collez ici votre texte contenant des questions d'entretien, des sujets techniques, ou tout contenu à partir duquel générer des questions..."
+                  disabled={isImporting}
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportText('');
+                  setError(null);
+                }}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+                disabled={isImporting}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleImportQuiz}
+                disabled={isImporting || !importText.trim()}
+                className="px-6 py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isImporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Analyse en cours...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Analyser et Importer
+                  </>
+                )}
               </button>
             </div>
           </div>
