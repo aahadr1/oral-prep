@@ -27,7 +27,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/projets');
+      router.push('/oral-quiz');
       router.refresh();
     }
   };

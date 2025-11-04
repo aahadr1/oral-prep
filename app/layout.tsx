@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Oral Prep - Préparation aux examens oraux",
-  description: "Préparez vos examens oraux avec des outils intelligents",
+  title: "Oral Quiz - Quiz oraux intelligents",
+  description: "Pratiquez vos examens oraux avec notre agent vocal intelligent",
 };
 
 export default function RootLayout({
