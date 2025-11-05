@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
 
     const { data, error } = await supabase
       .from('oral_blanc_sessions')

@@ -12,7 +12,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
 
     const { data, error } = await supabase
       .from('oral_blanc_sessions')
@@ -62,7 +62,7 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
 
     const { data, error } = await supabase
       .from('oral_blanc_sessions')
@@ -104,7 +104,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
 
     const { error } = await supabase
       .from('oral_blanc_sessions')

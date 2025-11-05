@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Step 2: Create Supabase client
     diagnostics.steps.push({ step: 2, name: 'Creating Supabase client...' });
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
     diagnostics.steps.push({ 
       step: 2, 
       name: 'Supabase Client', 

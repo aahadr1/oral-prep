@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[Oral Blanc List] User authenticated:', user.id);
 
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
 
     console.log('[Oral Blanc List] Querying oral_blanc_sessions table...');
     const { data, error } = await supabase
