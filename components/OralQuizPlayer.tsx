@@ -10,12 +10,13 @@ interface Question {
 interface OralQuizPlayerProps {
   questions: Question[];
   onComplete: () => void;
+  onUserSpoke?: () => void;
 }
 
 type Speaker = 'agent' | 'user' | 'none';
 type ConnectionState = 'disconnected' | 'connecting' | 'connected';
 
-export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayerProps) {
+export default function OralQuizPlayer({ questions, onComplete, onUserSpoke }: OralQuizPlayerProps) {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>('none');
   const [agentText, setAgentText] = useState('');
@@ -290,6 +291,11 @@ export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayer
       return;
     }
     
+    // Notifier que l'utilisateur a parlé (débloquer les boutons)
+    if (onUserSpoke) {
+      onUserSpoke();
+    }
+    
     // Commit audio buffer and request response
     sendEvent({ type: 'input_audio_buffer.commit' });
     
@@ -341,8 +347,16 @@ export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayer
       audioRef.current = audio;
       
       pc.ontrack = (e) => {
-        console.log('Received remote track');
+        console.log('Received remote track', e.streams[0]);
         audio.srcObject = e.streams[0];
+        
+        // Force play in case autoplay is blocked
+        audio.play().then(() => {
+          console.log('Audio playing successfully');
+        }).catch((err) => {
+          console.error('Error playing audio:', err);
+          setError('Impossible de jouer l\'audio. Cliquez n\'importe où pour activer le son.');
+        });
       };
       
       // Create data channel
@@ -471,13 +485,30 @@ export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayer
         setAgentText(prev => prev + (event.delta || ''));
         break;
         
-      case 'response.audio_transcript.delta':
+      case 'response.audio.delta':
+        console.log('Audio delta received - agent is speaking');
         setCurrentSpeaker('agent');
         hasActiveResponseRef.current = true;
         break;
         
+      case 'response.audio_transcript.delta':
+        console.log('Transcript delta:', event.delta);
+        setCurrentSpeaker('agent');
+        hasActiveResponseRef.current = true;
+        break;
+        
+      case 'response.audio.done':
+        console.log('Audio done - agent finished speaking');
+        setCurrentSpeaker('none');
+        hasActiveResponseRef.current = false;
+        break;
+        
       case 'response.audio_transcript.done':
+        console.log('Transcript done');
+        break;
+        
       case 'response.done':
+        console.log('Response done');
         setCurrentSpeaker('none');
         hasActiveResponseRef.current = false;
         break;

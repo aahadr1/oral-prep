@@ -44,11 +44,23 @@ export default function UltimateRevisionCard({
   const [selectedResponse, setSelectedResponse] = useState<RevisionResponse | null>(null);
   const [showCriteria, setShowCriteria] = useState(false);
   const [streak, setStreak] = useState(card.streak || 0);
+  const [hasUserSpoken, setHasUserSpoken] = useState(false);
+
+  // Reset quand la carte change (mais garde l'agent actif si déjà lancé)
+  useEffect(() => {
+    setHasUserSpoken(false);
+    setSelectedResponse(null);
+    // Ne pas réinitialiser à 'ready' si l'agent est déjà actif
+    // Cela permet de garder la session WebRTC active
+    if (state !== 'oral-active' && state !== 'ready') {
+      setState('oral-active'); // Retour à l'agent actif pour la question suivante
+    }
+  }, [card.id]);
 
   // Raccourcis clavier
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (state !== 'answered' && state !== 'rating') return;
+      if (!hasUserSpoken) return;
 
       if (e.key === '1') {
         handleRatingSelect('again');
@@ -58,14 +70,14 @@ export default function UltimateRevisionCard({
         handleRatingSelect('good');
       } else if (e.key === '4') {
         handleRatingSelect('easy');
-      } else if (e.key === 'Enter' && selectedResponse && state === 'rating') {
-        handleConfirmRating();
+      } else if (e.key === 'Enter' && selectedResponse) {
+        handleNextQuestion();
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [state, selectedResponse]);
+  }, [hasUserSpoken, selectedResponse]);
 
   // Calculer le niveau de la carte
   const getCardLevel = () => {
@@ -123,22 +135,22 @@ export default function UltimateRevisionCard({
   };
 
   const handleOralComplete = () => {
+    setHasUserSpoken(true);
     setState('answered');
   };
 
   const handleRatingSelect = (response: RevisionResponse) => {
     setSelectedResponse(response);
-    setState('rating');
+    // Pas de changement d'état - juste la sélection
   };
 
-  const handleConfirmRating = async () => {
+  const handleNextQuestion = async () => {
     if (!selectedResponse) return;
     
     setState('processing');
     
     try {
       await onResponse(selectedResponse);
-      setState('feedback');
       
       // Update streak animation
       if (selectedResponse !== 'again') {
@@ -147,10 +159,7 @@ export default function UltimateRevisionCard({
         setStreak(0);
       }
       
-      // Auto-continue after 2 seconds
-      setTimeout(() => {
-        // Parent component will handle moving to next card
-      }, 2000);
+      // Passage à la question suivante géré par le parent
     } catch (error) {
       console.error('Error submitting response:', error);
       setState('answered');
@@ -293,17 +302,19 @@ export default function UltimateRevisionCard({
 
             {state === 'oral-active' && (
               <motion.div
-                key="oral"
+                key={`oral-${card.id}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="h-full"
               >
                 <OralQuizPlayer
+                  key={card.id}
                   questions={[{
                     question: card.question,
                     criteria: card.criteria
                   }]}
+                  onUserSpoke={() => setHasUserSpoken(true)}
                   onComplete={handleOralComplete}
                 />
               </motion.div>
@@ -507,7 +518,7 @@ export default function UltimateRevisionCard({
 
           {/* Boutons d'évaluation */}
           <AnimatePresence>
-            {(state === 'answered' || state === 'rating' || state === 'processing') && (
+            {(state === 'oral-active' || state === 'answered' || state === 'rating' || state === 'processing') && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -519,7 +530,10 @@ export default function UltimateRevisionCard({
                     Évaluez votre Performance
                   </h4>
                   <p className="text-sm text-gray-600">
-                    Choisissez la réponse qui correspond le mieux à votre ressenti
+                    {!hasUserSpoken 
+                      ? "Les boutons seront disponibles après votre réponse"
+                      : "Choisissez la réponse qui correspond le mieux à votre ressenti"
+                    }
                   </p>
                 </div>
 
@@ -527,18 +541,22 @@ export default function UltimateRevisionCard({
                   {(['again', 'hard', 'good', 'easy'] as RevisionResponse[]).map((response) => {
                     const preview = getResponsePreview(response);
                     const isSelected = selectedResponse === response;
+                    const isDisabled = !hasUserSpoken;
                     
                     return (
                       <motion.button
                         key={response}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleRatingSelect(response)}
+                        whileHover={!isDisabled ? { scale: 1.02 } : {}}
+                        whileTap={!isDisabled ? { scale: 0.98 } : {}}
+                        onClick={() => !isDisabled && handleRatingSelect(response)}
+                        disabled={isDisabled}
                         className={`
                           relative p-5 rounded-xl border-3 transition-all duration-300
-                          ${isSelected 
-                            ? `bg-gradient-to-br ${preview.bgColor} border-current shadow-2xl ring-4 ring-${preview.color.split('-')[1]}-200` 
-                            : 'bg-white border-gray-200 hover:border-gray-300 shadow-md hover:shadow-lg'
+                          ${isDisabled 
+                            ? 'opacity-30 cursor-not-allowed bg-white border-gray-200' 
+                            : isSelected 
+                              ? `bg-gradient-to-br ${preview.bgColor} border-current shadow-2xl ring-4 ring-${preview.color.split('-')[1]}-200` 
+                              : 'bg-white border-gray-200 hover:border-gray-300 shadow-md hover:shadow-lg'
                           }
                         `}
                       >
@@ -563,35 +581,40 @@ export default function UltimateRevisionCard({
                   })}
                 </div>
 
-                {selectedResponse && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleConfirmRating}
-                    disabled={state === 'processing'}
-                    className="w-full py-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-lg rounded-xl shadow-2xl disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {state === 'processing' ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        Enregistrement...
-                      </>
-                    ) : (
-                      <>
-                        Valider et Continuer
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                      </>
-                    )}
-                  </motion.button>
-                )}
+                {/* Bouton Question Suivante */}
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: selectedResponse ? 1 : 0.5, y: 0 }}
+                  whileHover={selectedResponse ? { scale: 1.02 } : {}}
+                  whileTap={selectedResponse ? { scale: 0.98 } : {}}
+                  onClick={handleNextQuestion}
+                  disabled={!selectedResponse || state === 'processing'}
+                  className={`
+                    w-full py-4 rounded-xl font-bold text-lg shadow-2xl flex items-center justify-center gap-2 transition-all
+                    ${selectedResponse && state !== 'processing'
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white cursor-pointer'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  {state === 'processing' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Passage à la question suivante...
+                    </>
+                  ) : (
+                    <>
+                      <span>Question Suivante</span>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                      </svg>
+                    </>
+                  )}
+                </motion.button>
 
                 <div className="text-center text-xs text-gray-500 space-y-1">
-                  <div>💡 Raccourcis clavier: 1️⃣ Again • 2️⃣ Hard • 3️⃣ Good • 4️⃣ Easy</div>
-                  <div>Appuyez sur <kbd className="px-2 py-1 bg-gray-100 rounded">Entrée</kbd> pour valider</div>
+                  <div>💡 Raccourcis: <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">1</kbd> Again • <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">2</kbd> Hard • <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">3</kbd> Good • <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">4</kbd> Easy</div>
+                  <div>Appuyez sur <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">Entrée</kbd> pour passer à la question suivante</div>
                 </div>
               </motion.div>
             )}

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import UltimateRevisionCard from './UltimateRevisionCard';
+import { motion } from 'framer-motion';
+import ContinuousRevisionSession from './ContinuousRevisionSession';
 import SessionSummary from './SessionSummary';
 import type { QuestionCard, RevisionResponse } from '@/lib/types';
 
@@ -17,7 +17,6 @@ type SessionPhase = 'loading' | 'session' | 'summary';
 interface SessionData {
   sessionId: string;
   cards: QuestionCard[];
-  currentIndex: number;
   responses: Array<{
     cardId: string;
     response: RevisionResponse;
@@ -95,7 +94,6 @@ export default function UltimateRevisionManager({
       setSession({
         sessionId: session_id,
         cards: cardsData,
-        currentIndex: 0,
         responses: [],
         startTime: Date.now()
       });
@@ -108,10 +106,8 @@ export default function UltimateRevisionManager({
     }
   };
 
-  const handleCardResponse = async (response: RevisionResponse) => {
+  const handleCardResponse = async (cardId: string, response: RevisionResponse) => {
     if (!session) return;
-
-    const currentCard = session.cards[session.currentIndex];
     
     try {
       // Enregistrer la réponse
@@ -119,7 +115,7 @@ export default function UltimateRevisionManager({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          card_id: currentCard.id,
+          card_id: cardId,
           response,
           session_id: session.sessionId
         })
@@ -144,37 +140,16 @@ export default function UltimateRevisionManager({
       const newResponses = [
         ...session.responses,
         {
-          cardId: currentCard.id,
+          cardId,
           response,
           timestamp: Date.now()
         }
       ];
 
-      // Passer à la carte suivante ou terminer
-      if (session.currentIndex < session.cards.length - 1) {
-        setSession({
-          ...session,
-          currentIndex: session.currentIndex + 1,
-          responses: newResponses
-        });
-      } else {
-        // Terminer la session
-        await fetch('/api/revision/session', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            session_id: session.sessionId, 
-            action: 'complete' 
-          })
-        });
-
-        setSession({
-          ...session,
-          responses: newResponses
-        });
-
-        setPhase('summary');
-      }
+      setSession({
+        ...session,
+        responses: newResponses
+      });
     } catch (error) {
       console.error('Error handling response:', error);
       throw error;
@@ -279,55 +254,16 @@ export default function UltimateRevisionManager({
 
   // Session Phase
   if (phase === 'session' && session) {
-    const currentCard = session.cards[session.currentIndex];
-    
     return (
-      <div className="h-screen overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={session.currentIndex}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ type: 'spring', bounce: 0 }}
-            className="h-full"
-          >
-            <UltimateRevisionCard
-              card={currentCard}
-              cardNumber={session.currentIndex + 1}
-              totalCards={session.cards.length}
-              onResponse={handleCardResponse}
-              onSkip={onExit}
-            />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Mini Stats Overlay */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed top-4 right-4 bg-white/90 backdrop-blur rounded-xl shadow-lg p-4 border border-gray-200"
-        >
-          <div className="flex items-center gap-4">
-            <div className="text-center">
-              <div className="text-xs text-gray-500 mb-1">Révisées</div>
-              <div className="text-lg font-bold text-blue-600">{session.responses.length}</div>
-            </div>
-            <div className="w-px h-8 bg-gray-300" />
-            <div className="text-center">
-              <div className="text-xs text-gray-500 mb-1">Série 🔥</div>
-              <div className="text-lg font-bold text-orange-600">{currentStreak}</div>
-            </div>
-            <div className="w-px h-8 bg-gray-300" />
-            <div className="text-center">
-              <div className="text-xs text-gray-500 mb-1">Temps</div>
-              <div className="text-lg font-bold text-purple-600">
-                {Math.floor((Date.now() - session.startTime) / 60000)}m
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+      <ContinuousRevisionSession
+        cards={session.cards}
+        sessionId={session.sessionId}
+        onCardResponse={handleCardResponse}
+        onComplete={() => {
+          setPhase('summary');
+        }}
+        onExit={onExit}
+      />
     );
   }
 
