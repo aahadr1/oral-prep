@@ -150,8 +150,8 @@ export default function SessionSummary({ stats, onContinue, onReviewMistakes }: 
               transition={{ delay: 0.4 }}
               className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center border border-purple-200"
             >
-              <div className="text-3xl font-bold text-purple-600 mb-1">{formatDuration(stats.duration)}</div>
-              <div className="text-sm text-purple-800 font-medium">Temps Total</div>
+              <div className="text-3xl font-bold text-purple-600 mb-1">✅</div>
+              <div className="text-sm text-purple-800 font-medium">Session Complète</div>
             </motion.div>
 
             <motion.div
@@ -242,8 +242,8 @@ export default function SessionSummary({ stats, onContinue, onReviewMistakes }: 
               
               <div className="bg-white rounded-lg p-4 text-center border border-yellow-200">
                 <div className="text-3xl mb-2">⚡</div>
-                <div className="text-2xl font-bold text-gray-800">{Math.round(stats.avgResponseTime)}s</div>
-                <div className="text-xs text-gray-600">Temps Moyen</div>
+                <div className="text-2xl font-bold text-gray-800">🎯</div>
+                <div className="text-xs text-gray-600">Performance</div>
               </div>
             </div>
           </div>

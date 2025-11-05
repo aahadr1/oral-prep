@@ -100,10 +100,10 @@ export default function ContinuousRevisionSession({
 
   const getResponsePreview = (response: RevisionResponse) => {
     const previews = {
-      again: { label: 'À revoir', icon: '🔴', color: 'text-red-600', bgColor: 'from-red-50 to-red-100', nextReview: '< 10 min' },
-      hard: { label: 'Difficile', icon: '🟠', color: 'text-orange-600', bgColor: 'from-orange-50 to-orange-100', nextReview: '1-2 jours' },
-      good: { label: 'Bien', icon: '🔵', color: 'text-blue-600', bgColor: 'from-blue-50 to-blue-100', nextReview: '1-2 semaines' },
-      easy: { label: 'Facile', icon: '🟢', color: 'text-green-600', bgColor: 'from-green-50 to-green-100', nextReview: '1-3 mois' }
+      again: { label: 'À revoir', icon: '🔴', color: 'text-red-600', bgColor: 'from-red-50 to-red-100' },
+      hard: { label: 'Difficile', icon: '🟠', color: 'text-orange-600', bgColor: 'from-orange-50 to-orange-100' },
+      good: { label: 'Bien', icon: '🔵', color: 'text-blue-600', bgColor: 'from-blue-50 to-blue-100' },
+      easy: { label: 'Facile', icon: '🟢', color: 'text-green-600', bgColor: 'from-green-50 to-green-100' }
     };
     return previews[response];
   };
@@ -266,9 +266,6 @@ export default function ContinuousRevisionSession({
                     <div className="flex flex-col items-center space-y-2">
                       <span className="text-4xl">{preview.icon}</span>
                       <div className="font-bold text-lg text-gray-800">{preview.label}</div>
-                      <div className={`text-xs font-semibold ${isSelected ? preview.color : 'text-gray-500'}`}>
-                        ⏰ {preview.nextReview}
-                      </div>
                     </div>
                     {isSelected && (
                       <motion.div

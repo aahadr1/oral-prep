@@ -27,7 +27,6 @@ type RevisionState = 'ready' | 'oral-active' | 'answered' | 'rating' | 'processi
 interface ResponsePreview {
   label: string;
   description: string;
-  nextReview: string;
   color: string;
   bgColor: string;
   icon: string;
@@ -97,7 +96,6 @@ export default function UltimateRevisionCard({
       again: {
         label: 'À revoir',
         description: 'Je ne savais pas du tout',
-        nextReview: '< 10 minutes',
         color: 'text-red-600',
         bgColor: 'from-red-50 to-red-100',
         icon: '🔴'
@@ -105,7 +103,6 @@ export default function UltimateRevisionCard({
       hard: {
         label: 'Difficile',
         description: 'J\'ai eu du mal à répondre',
-        nextReview: card.L < 3 ? '1 jour' : '2-3 jours',
         color: 'text-orange-600',
         bgColor: 'from-orange-50 to-orange-100',
         icon: '🟠'
@@ -113,7 +110,6 @@ export default function UltimateRevisionCard({
       good: {
         label: 'Bien',
         description: 'Réponse correcte',
-        nextReview: card.L < 3 ? '3 jours' : card.L < 8 ? '1 semaine' : '2 semaines',
         color: 'text-blue-600',
         bgColor: 'from-blue-50 to-blue-100',
         icon: '🔵'
@@ -121,7 +117,6 @@ export default function UltimateRevisionCard({
       easy: {
         label: 'Facile',
         description: 'Réponse parfaite et immédiate',
-        nextReview: card.L < 5 ? '1 semaine' : card.L < 10 ? '1 mois' : '3 mois',
         color: 'text-green-600',
         bgColor: 'from-green-50 to-green-100',
         icon: '🟢'
@@ -564,9 +559,6 @@ export default function UltimateRevisionCard({
                           <span className="text-4xl">{preview.icon}</span>
                           <div className="font-bold text-lg text-gray-800">{preview.label}</div>
                           <div className="text-xs text-gray-600 text-center">{preview.description}</div>
-                          <div className={`text-xs font-semibold ${isSelected ? preview.color : 'text-gray-500'}`}>
-                            ⏰ Prochaine: {preview.nextReview}
-                          </div>
                         </div>
                         
                         {isSelected && (

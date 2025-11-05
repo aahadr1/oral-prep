@@ -235,8 +235,8 @@ Output:
 {
   "title": "Quiz React - Concepts de Base",
   "description": "Questions fondamentales sur React et ses Hooks",
-  "questions": [
-    {
+      "questions": [
+        {
       "question": "Qu'est-ce que React ?",
       "criteria": [
         "Mentionne que c'est une bibliothèque JavaScript",
@@ -370,7 +370,7 @@ Ne génère AUCUN critère. Extrais seulement ce qui est présent.`;
     // Count questions in text for verification
     const questionCount = (text.match(/^\s*\d+\./gm) || []).length;
     console.log(`[Import] Detected ${questionCount} numbered questions in the text`);
-    
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
