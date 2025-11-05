@@ -66,49 +66,56 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
 
   // Detect question changes and ask agent to announce the new question
   useEffect(() => {
-    const currentQuestion = questions[0]?.question || '';
-    
     // Skip on first mount
     if (isFirstMountRef.current) {
       isFirstMountRef.current = false;
-      previousQuestionRef.current = currentQuestion;
+      previousQuestionRef.current = questionNumber.toString();
       return;
     }
     
-    // If question changed and we're connected, ask agent to announce it
-    if (currentQuestion !== previousQuestionRef.current && 
+    // If question number changed and we're connected, ask agent to announce it
+    if (questionNumber.toString() !== previousQuestionRef.current && 
         connectionState === 'connected' && 
-        sessionReadyRef.current &&
-        !hasActiveResponseRef.current) {
+        sessionReadyRef.current) {
       
-      console.log(`[OralQuizPlayer] Question changed to question #${questionNumber}, asking agent to announce it`);
-      previousQuestionRef.current = currentQuestion;
+      console.log(`[OralQuizPlayer] Question changed to #${questionNumber}, asking agent to announce it`);
+      previousQuestionRef.current = questionNumber.toString();
+      
+      // Cancel any active response first
+      if (hasActiveResponseRef.current) {
+        console.log('[OralQuizPlayer] Cancelling active response before announcing new question');
+        sendEvent({ type: 'response.cancel' });
+        hasActiveResponseRef.current = false;
+      }
       
       // Clear any transcripts
       setAgentText('');
       setUserTranscript('');
       
-      // Ask agent to announce the new question
-      sendEvent({
-        type: 'conversation.item.create',
-        item: {
-          type: 'message',
-          role: 'user',
-          content: [{
-            type: 'input_text',
-            text: `Question suivante s'il vous plaît. Posez maintenant la question ${questionNumber}.`
-          }]
-        }
-      });
-      
-      // Request response
+      // Small delay to ensure cancellation is processed
       setTimeout(() => {
-        sendEvent({ type: 'response.create' });
-        hasActiveResponseRef.current = true;
-        setCurrentSpeaker('agent');
-      }, 200);
+        // Ask agent to announce the new question
+        sendEvent({
+          type: 'conversation.item.create',
+          item: {
+            type: 'message',
+            role: 'user',
+            content: [{
+              type: 'input_text',
+              text: `Question suivante s'il vous plaît. Posez maintenant la question numéro ${questionNumber}.`
+            }]
+          }
+        });
+        
+        // Request response
+        setTimeout(() => {
+          sendEvent({ type: 'response.create' });
+          hasActiveResponseRef.current = true;
+          setCurrentSpeaker('agent');
+        }, 100);
+      }, 100);
     }
-  }, [questions, connectionState, questionNumber]);
+  }, [questionNumber, connectionState]);
 
   // Convert Float32Array to base64-encoded PCM16
   const floatTo16BitPCM = (float32Array: Float32Array): string => {

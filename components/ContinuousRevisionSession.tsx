@@ -173,6 +173,7 @@ export default function ContinuousRevisionSession({
             }))}
             onUserSpoke={() => setHasUserSpoken(true)}
             onComplete={() => {}}
+            questionNumber={currentIndex + 1}
           />
         </div>
 
