@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { OralQuiz, OralQuizQuestion } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import RevisionManager from './RevisionManager';
 
 interface OralQuizManagerProps {
   userId: string;
@@ -23,6 +24,7 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importText, setImportText] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const router = useRouter();
 
   // Fetch saved quizzes
@@ -159,10 +161,38 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
     }
   };
 
-  const handleStartQuiz = (quiz: OralQuiz) => {
-    // Store the quiz in session storage for the player
-    sessionStorage.setItem('currentOralQuiz', JSON.stringify(quiz));
-    router.push(`/oral-quiz/play/${quiz.id}`);
+  const handleStartQuiz = async (quiz: OralQuiz) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Créer les cartes de révision si elles n'existent pas
+      const response = await fetch('/api/revision/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quiz_id: quiz.id })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        // Si les cartes existent déjà, c'est ok
+        if (!errorData.message?.includes('already exist')) {
+          console.error('Error creating cards:', errorData);
+          setError('Erreur lors de la création des cartes : ' + (errorData.details || errorData.error));
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Passer en mode jeu avec révision
+      setActiveQuizId(quiz.id);
+      
+    } catch (err) {
+      console.error('Error starting quiz:', err);
+      setError('Erreur lors du démarrage du quiz');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addQuestion = () => {
@@ -196,6 +226,25 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
     updated[questionIndex].criteria[criterionIndex] = value;
     setQuestions(updated);
   };
+
+  // Si un quiz est actif, afficher le RevisionManager
+  if (activeQuizId) {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={() => setActiveQuizId(null)}
+          className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Retour à mes quiz
+        </button>
+        
+        <RevisionManager quizId={activeQuizId} userId={userId} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -253,13 +302,18 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleStartQuiz(quiz)}
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition flex items-center justify-center shadow-md"
                 >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   Commencer
                 </button>
                 <button
                   onClick={() => handleEditQuiz(quiz)}
                   className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition"
+                  title="Modifier le quiz"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -269,6 +323,7 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
                 <button
                   onClick={() => handleDeleteQuiz(quiz.id)}
                   className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition"
+                  title="Supprimer le quiz"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 

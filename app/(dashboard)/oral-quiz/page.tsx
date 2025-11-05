@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import OralQuizManager from '@/components/OralQuizManager';
+// import RevisionManager from '@/components/RevisionManager';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { OralQuizQuestion } from '@/lib/types';
 
@@ -151,12 +152,6 @@ export default function OralQuizPage() {
             Pratiquez vos réponses orales avec l&rsquo;agent vocal intelligent
           </p>
         </div>
-        <Link
-          href="/projets"
-          className="px-4 py-2 text-gray-600 hover:text-gray-900 transition"
-        >
-          ← Retour aux projets
-        </Link>
       </div>
 
       {!isQuizActive ? (
@@ -187,9 +182,12 @@ export default function OralQuizPage() {
             </div>
           </div>
 
-          {activeTab === 'saved' && user ? (
+          {/* Content based on active tab */}
+          {activeTab === 'saved' && user && (
             <OralQuizManager userId={user.id} />
-          ) : (
+          )}
+          
+          {activeTab === 'create' && (
             <>
               {/* Questions Setup */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
