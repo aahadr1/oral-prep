@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { OralQuiz, OralQuizQuestion } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import UltimateRevisionManager from './UltimateRevisionManager';
+import IntelligentQuizImport from './IntelligentQuizImport';
 
 interface OralQuizManagerProps {
   userId: string;
@@ -22,8 +23,6 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
   ]);
   const [error, setError] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const router = useRouter();
 
@@ -53,43 +52,15 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
     setShowCreateModal(true);
   };
 
-  const handleImportQuiz = async () => {
-    if (!importText.trim()) {
-      setError('Veuillez coller du texte à analyser');
-      return;
-    }
-
-    setIsImporting(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/oral-quiz/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: importText })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to import quiz');
-      }
-
-      const data = await response.json();
-      
-      // Populate the form with extracted data
-      setQuizTitle(data.title);
-      setQuizDescription(data.description);
-      setQuestions(data.questions);
-      
-      // Close import modal and open create modal
-      setShowImportModal(false);
-      setImportText('');
-      setShowCreateModal(true);
-    } catch (err) {
-      console.error('Error importing quiz:', err);
-      setError('Erreur lors de l\'analyse du texte. Veuillez réessayer.');
-    } finally {
-      setIsImporting(false);
-    }
+  const handleImportComplete = (data: { title: string; description: string; questions: OralQuizQuestion[] }) => {
+    // Populate the form with imported data
+    setQuizTitle(data.title);
+    setQuizDescription(data.description);
+    setQuestions(data.questions);
+    
+    // Close import modal and open create modal
+    setShowImportModal(false);
+    setShowCreateModal(true);
   };
 
   const handleEditQuiz = (quiz: OralQuiz) => {
@@ -482,72 +453,13 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
 
       {/* Intelligent Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-y-auto p-6">
-            <h2 className="text-2xl font-bold mb-4">Import Intelligent de Questions</h2>
-            
-            <p className="text-gray-600 mb-6">
-              Collez votre texte ci-dessous et l&apos;IA analysera le contenu pour extraire automatiquement 
-              les questions et critères d&apos;évaluation pour votre quiz oral.
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Texte à analyser
-                </label>
-                <textarea
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  rows={10}
-                  placeholder="Collez ici votre texte contenant des questions d'entretien, des sujets techniques, ou tout contenu à partir duquel générer des questions..."
-                  disabled={isImporting}
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                  {error}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowImportModal(false);
-                  setImportText('');
-                  setError(null);
-                }}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
-                disabled={isImporting}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleImportQuiz}
-                disabled={isImporting || !importText.trim()}
-                className="px-6 py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isImporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Analyse en cours...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                    Analyser et Importer
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+        <IntelligentQuizImport
+          onImportComplete={handleImportComplete}
+          onClose={() => {
+            setShowImportModal(false);
+            setError(null);
+          }}
+        />
       )}
     </div>
   );

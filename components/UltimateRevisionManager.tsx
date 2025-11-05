@@ -49,7 +49,7 @@ export default function UltimateRevisionManager({
       let cardsData: QuestionCard[] = [];
       
       // Essayer de récupérer les cartes existantes
-      const cardsResponse = await fetch(`/api/revision/cards?quiz_id=${quizId}&action=eligible&limit=20`);
+      const cardsResponse = await fetch(`/api/revision/cards?quiz_id=${quizId}&action=eligible&limit=500`);
       
       if (cardsResponse.ok) {
         const { cards } = await cardsResponse.json();
@@ -69,7 +69,7 @@ export default function UltimateRevisionManager({
         }
 
         // Recharger les cartes
-        const newCardsResponse = await fetch(`/api/revision/cards?quiz_id=${quizId}&action=eligible&limit=20`);
+        const newCardsResponse = await fetch(`/api/revision/cards?quiz_id=${quizId}&action=eligible&limit=500`);
         const { cards: newCards } = await newCardsResponse.json();
         cardsData = newCards || [];
       }
@@ -82,7 +82,7 @@ export default function UltimateRevisionManager({
       const sessionResponse = await fetch('/api/revision/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quiz_id: quizId, max_cards: 20 })
+        body: JSON.stringify({ quiz_id: quizId, max_cards: 500 })
       });
 
       if (!sessionResponse.ok) {

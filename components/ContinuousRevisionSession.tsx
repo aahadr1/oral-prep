@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import type { QuestionCard, RevisionResponse } from '@/lib/types';
 import type { OralQuizPlayerRef } from './OralQuizPlayer';
 
-const OralQuizPlayer = dynamic(() => import('./OralQuizPlayer'), {
+const OralQuizPlayer = dynamic<any>(() => import('./OralQuizPlayer'), {
   ssr: false,
   loading: () => (
     <div className="flex justify-center items-center h-64">

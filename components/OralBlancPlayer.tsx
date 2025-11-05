@@ -2,26 +2,20 @@
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 
-interface Question {
-  question: string;
-  criteria: string[];
-}
-
-interface OralQuizPlayerProps {
-  questions: Question[];
+interface OralBlancPlayerProps {
+  topic: string;
   onComplete: () => void;
   onUserSpoke?: () => void;
-  questionNumber?: number;
 }
 
-export interface OralQuizPlayerRef {
+export interface OralBlancPlayerRef {
   cancelActiveResponse: () => void;
 }
 
 type Speaker = 'agent' | 'user' | 'none';
 type ConnectionState = 'disconnected' | 'connecting' | 'connected';
 
-const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ questions, onComplete, onUserSpoke, questionNumber = 1 }, ref) => {
+const OralBlancPlayer = forwardRef<OralBlancPlayerRef, OralBlancPlayerProps>(({ topic, onComplete, onUserSpoke }, ref) => {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>('none');
   const [agentText, setAgentText] = useState('');
@@ -42,8 +36,6 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
   const animationFrameRef = useRef<number | null>(null);
   const hasActiveResponseRef = useRef(false);
   const sessionReadyRef = useRef(false);
-  const previousQuestionRef = useRef<string>('');
-  const isFirstMountRef = useRef(true);
 
   // Send event through data channel
   const sendEvent = (event: any) => {
@@ -63,52 +55,6 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
       }
     }
   }));
-
-  // Detect question changes and ask agent to announce the new question
-  useEffect(() => {
-    const currentQuestion = questions[0]?.question || '';
-    
-    // Skip on first mount
-    if (isFirstMountRef.current) {
-      isFirstMountRef.current = false;
-      previousQuestionRef.current = currentQuestion;
-      return;
-    }
-    
-    // If question changed and we're connected, ask agent to announce it
-    if (currentQuestion !== previousQuestionRef.current && 
-        connectionState === 'connected' && 
-        sessionReadyRef.current &&
-        !hasActiveResponseRef.current) {
-      
-      console.log(`[OralQuizPlayer] Question changed to question #${questionNumber}, asking agent to announce it`);
-      previousQuestionRef.current = currentQuestion;
-      
-      // Clear any transcripts
-      setAgentText('');
-      setUserTranscript('');
-      
-      // Ask agent to announce the new question
-      sendEvent({
-        type: 'conversation.item.create',
-        item: {
-          type: 'message',
-          role: 'user',
-          content: [{
-            type: 'input_text',
-            text: `Question suivante s'il vous plaît. Posez maintenant la question ${questionNumber}.`
-          }]
-        }
-      });
-      
-      // Request response
-      setTimeout(() => {
-        sendEvent({ type: 'response.create' });
-        hasActiveResponseRef.current = true;
-        setCurrentSpeaker('agent');
-      }, 200);
-    }
-  }, [questions, connectionState, questionNumber]);
 
   // Convert Float32Array to base64-encoded PCM16
   const floatTo16BitPCM = (float32Array: Float32Array): string => {
@@ -384,10 +330,10 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
       setError(null);
       
       // Get session token
-      const response = await fetch('/api/oral-quiz/session', {
+      const response = await fetch('/api/oral-blanc/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questions })
+        body: JSON.stringify({ topic })
       });
       
       if (!response.ok) {
@@ -441,7 +387,7 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
             clearInterval(waitForSession);
             console.log('Session ready, sending initial message');
             
-            // Send initial message to start the quiz with the first question
+            // Send initial message to start the oral blanc
             if (!hasActiveResponseRef.current) {
               sendEvent({
                 type: 'conversation.item.create',
@@ -450,7 +396,7 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
                   role: 'user',
                   content: [{
                     type: 'input_text',
-                    text: 'Bonjour, je suis prêt. Veuillez poser la première question.'
+                    text: 'Bonjour, je suis prêt pour l\'oral blanc. Vous pouvez commencer.'
                   }]
                 }
               });
@@ -647,7 +593,7 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
             connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
             'bg-gray-500'
           }`} />
-          {connectionState === 'connected' ? 'Connecté' :
+          {connectionState === 'connected' ? 'Connecté au Jury' :
            connectionState === 'connecting' ? 'Connexion...' :
            'Déconnecté'}
         </div>
@@ -656,7 +602,7 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
           onClick={onComplete}
           className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition"
         >
-          Arrêter le Quiz
+          Terminer l&rsquo;Oral Blanc
         </button>
       </div>
 
@@ -670,27 +616,31 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
         <div className="space-y-6">
           {/* Speaker Indicators */}
           <div className="flex justify-center gap-12">
-            {/* Agent */}
+            {/* Agent - Jury */}
             <div className={`text-center transition-all duration-300 ${
               currentSpeaker === 'agent' ? 'scale-110' : 'scale-90 opacity-60'
             }`}>
               <div className={`relative w-20 h-20 rounded-full flex items-center justify-center ${
                 currentSpeaker === 'agent' 
-                  ? 'bg-blue-100 ring-4 ring-blue-300' 
+                  ? 'bg-purple-100 ring-4 ring-purple-300' 
                   : 'bg-gray-100'
               }`}>
-                <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    d="M12 14l9-5-9-5-9 5 9 5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
                 </svg>
                 {currentSpeaker === 'agent' && (
-                  <div className="absolute inset-0 rounded-full animate-pulse bg-blue-200 opacity-50" />
+                  <div className="absolute inset-0 rounded-full animate-pulse bg-purple-200 opacity-50" />
                 )}
               </div>
-              <p className="mt-2 text-sm font-medium">Agent</p>
+              <p className="mt-2 text-sm font-medium">Jury</p>
             </div>
 
-            {/* User */}
+            {/* User - Candidat */}
             <div className={`text-center transition-all duration-300 ${
               currentSpeaker === 'user' ? 'scale-110' : 'scale-90 opacity-60'
             }`}>
@@ -713,7 +663,7 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
                   </div>
                 )}
               </div>
-              <p className="mt-2 text-sm font-medium">Vous</p>
+              <p className="mt-2 text-sm font-medium">Candidat</p>
               {isListening && audioBufferSize > 0 && (
                 <p className="text-xs text-green-600 mt-1">{audioBufferSize}ms enregistré</p>
               )}
@@ -737,7 +687,7 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                       d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
-                  {currentSpeaker === 'agent' ? 'L\'agent parle...' : 'Prendre la parole'}
+                  {currentSpeaker === 'agent' ? 'Le jury parle...' : 'Répondre au jury'}
                 </span>
               </button>
             ) : (
@@ -764,9 +714,9 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
           {/* Messages */}
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {agentText && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fadeIn">
-                <p className="text-sm font-semibold text-blue-900 mb-1">Agent :</p>
-                <p className="text-blue-800 whitespace-pre-wrap">{agentText}</p>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 animate-fadeIn">
+                <p className="text-sm font-semibold text-purple-900 mb-1">Jury :</p>
+                <p className="text-purple-800 whitespace-pre-wrap">{agentText}</p>
               </div>
             )}
             
@@ -788,12 +738,12 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
               <div className="text-sm text-amber-800">
                 <p className="font-semibold mb-1">Instructions :</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Attendez que l&rsquo;agent finisse de parler (indicateur bleu)</li>
-                  <li>Cliquez sur <strong>&quot;Prendre la parole&quot;</strong> pour commencer</li>
-                  <li>Parlez clairement pendant au moins 2-3 secondes</li>
+                  <li>Le jury vous posera des questions sur le sujet fourni</li>
+                  <li>Attendez que le jury finisse de parler (indicateur violet)</li>
+                  <li>Cliquez sur <strong>&quot;Répondre au jury&quot;</strong> pour prendre la parole</li>
+                  <li>Parlez clairement et développez vos réponses</li>
                   <li>Cliquez sur <strong>&quot;Terminer ma réponse&quot;</strong> quand vous avez fini</li>
-                  <li>Si l&rsquo;audio n&rsquo;est pas capturé, vérifiez votre microphone et parlez plus fort</li>
-                  <li>L&rsquo;indicateur vert montre le nombre de millisecondes enregistrées</li>
+                  <li>L&rsquo;indicateur vert montre le temps d&rsquo;enregistrement</li>
                 </ul>
               </div>
             </div>
@@ -804,6 +754,7 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
   );
 });
 
-OralQuizPlayer.displayName = 'OralQuizPlayer';
+OralBlancPlayer.displayName = 'OralBlancPlayer';
 
-export default OralQuizPlayer;
+export default OralBlancPlayer;
+

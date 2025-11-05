@@ -302,20 +302,20 @@ export default function UltimateRevisionCard({
 
             {state === 'oral-active' && (
               <motion.div
-                key={`oral-${card.id}`}
+                key="oral-player"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="h-full"
               >
                 <OralQuizPlayer
-                  key={card.id}
                   questions={[{
                     question: card.question,
                     criteria: card.criteria
                   }]}
                   onUserSpoke={() => setHasUserSpoken(true)}
                   onComplete={handleOralComplete}
+                  questionNumber={cardNumber}
                 />
               </motion.div>
             )}

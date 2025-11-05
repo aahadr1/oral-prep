@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Oral Quiz Session] Starting session creation...');
+    console.log('[Oral Blanc Session] Starting session creation...');
     
     // Skip auth check if in development and SKIP_AUTH is set
     const skipAuth = process.env.NODE_ENV === 'development' && process.env.SKIP_AUTH === 'true';
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       try {
         user = await getCurrentUser();
       } catch (authError) {
-        console.error('[Oral Quiz Session] Auth error:', authError);
+        console.error('[Oral Blanc Session] Auth error:', authError);
         
         // If Supabase is not configured, provide helpful message
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -34,27 +34,27 @@ export async function POST(request: NextRequest) {
       }
       
       if (!user) {
-        console.log('[Oral Quiz Session] No user found');
+        console.log('[Oral Blanc Session] No user found');
         return NextResponse.json({ error: 'Please log in first' }, { status: 401 });
       }
       
-      console.log('[Oral Quiz Session] User authenticated:', user.id);
+      console.log('[Oral Blanc Session] User authenticated:', user.id);
     } else {
-      console.log('[Oral Quiz Session] Skipping auth (development mode)');
+      console.log('[Oral Blanc Session] Skipping auth (development mode)');
     }
 
     const body = await request.json();
-    const { questions } = body;
+    const { topic } = body;
 
-    if (!questions || questions.length === 0) {
-      return NextResponse.json({ error: 'No questions provided' }, { status: 400 });
+    if (!topic || topic.trim().length === 0) {
+      return NextResponse.json({ error: 'No topic provided' }, { status: 400 });
     }
 
-    console.log('[Oral Quiz Session] Questions received:', questions.length);
+    console.log('[Oral Blanc Session] Topic received, length:', topic.length);
 
     // Check OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
-      console.error('[Oral Quiz Session] OPENAI_API_KEY is not configured');
+      console.error('[Oral Blanc Session] OPENAI_API_KEY is not configured');
       return NextResponse.json({ 
         error: 'OPENAI_API_KEY not configured',
         solution: 'Add to .env.local: OPENAI_API_KEY=sk-...',
@@ -71,59 +71,63 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Create the system prompt for the oral quiz agent
-    const systemPrompt = `Tu es un examinateur oral bienveillant et professionnel.
+    // Create the system prompt for the oral blanc agent (jury simulation)
+    const systemPrompt = `Tu es un membre de jury de concours expérimenté et exigeant mais bienveillant.
 
-=== MÉMOIRE DES QUESTIONS (NE JAMAIS OUBLIER) ===
-Tu as exactement ${questions.length} questions à poser dans l'ordre. Garde en mémoire ta progression.
+=== SUJET D'INTERROGATION ===
+Voici le matériel sur lequel tu vas interroger le candidat:
 
-LISTE COMPLÈTE DES QUESTIONS:
-${questions.map((q: any, i: number) => `
-QUESTION ${i + 1}/${questions.length}:
-Question: "${q.question}"
-Critères: ${JSON.stringify(q.criteria)}
-`).join('\n')}
+${topic}
 
-=== COMPTEUR DE PROGRESSION ===
-Tu DOIS suivre où tu en es:
-- Commence par la question 1
-- Après chaque réponse et feedback, passe à la suivante
-- Si l'utilisateur dit "question suivante" ou équivalent, passe à la suivante
-- Rappelle toujours le numéro actuel: "Question X sur ${questions.length}"
+=== TON RÔLE ===
+Tu es un jury de concours qui interroge un candidat sur le sujet ci-dessus. Tu dois:
+1. Poser des questions pertinentes et approfondies basées sur le contenu fourni
+2. Adapter tes questions au niveau de réponse du candidat
+3. Creuser plus profond quand le candidat répond bien
+4. Aider gentiment quand le candidat a des difficultés
+5. Poser des questions de différents types: définitions, explications, applications, analyse critique
+
+=== PROCESSUS D'INTERROGATION ===
+1. DÉBUT: Présente-toi brièvement comme membre du jury et annonce le sujet
+2. PREMIÈRE QUESTION: Commence par une question générale pour évaluer le niveau
+3. QUESTIONS SUIVANTES: 
+   - Si le candidat répond bien, pose des questions plus approfondies
+   - Si le candidat a des difficultés, reformule ou pose des questions plus simples
+   - Varie les types de questions (concepts, détails, liens, applications)
+4. FEEDBACK: Donne un bref feedback après chaque réponse (positif ou constructif)
+5. PROGRESSION: Couvre différents aspects du sujet fourni
+6. Ne pose qu'UNE question à la fois
+7. Attends la réponse complète avant de passer à la suite
+
+=== STYLE DE QUESTIONS ===
+Exemples de types de questions à poser:
+- "Pouvez-vous expliquer le concept de...?"
+- "Quelles sont les principales causes de...?"
+- "Comment analysez-vous...?"
+- "Quelle est la différence entre X et Y?"
+- "Quelles sont les conséquences de...?"
+- "Comment appliqueriez-vous ce principe dans...?"
+- "Pouvez-vous développer ce point...?"
 
 === INSTRUCTION DE DÉMARRAGE ===
-Dès que l'utilisateur dit "Bonjour, je suis prêt", réponds en AUDIO:
-"Bonjour ! Commençons. Question 1 sur ${questions.length}."
-Puis pose IMMÉDIATEMENT la première question.
+Dès que le candidat dit qu'il est prêt, réponds en AUDIO:
+"Bonjour, je suis membre du jury. Nous allons vous interroger sur [sujet principal]. Êtes-vous prêt(e)?"
 
-=== PROCESSUS STRICT POUR CHAQUE QUESTION ===
-1. Annonce clairement: "Question [numéro] sur ${questions.length}"
-2. Pose la question COMPLÈTE à voix haute
-3. Dis: "Je vous écoute."
-4. ATTENDS la réponse de l'utilisateur
-5. ÉCOUTE ce qu'il dit vraiment
-6. Donne un feedback sur les critères mentionnés
-7. Si pas dernière question, dis: "Passons à la question suivante"
-8. INCRÉMENTE ton compteur et passe à la prochaine question
+Puis attends confirmation et pose ta première question.
 
-=== GESTION DE LA CONVERSATION ===
-Si l'utilisateur:
-- Dit "question suivante" → Passe à la question suivante dans ta liste
-- Demande de répéter → Répète la question actuelle
-- Demande une clarification → Clarifie sans changer de question
-- Dit "plus de détails" → Développe ton feedback mais garde ta position
-
-RÈGLE ABSOLUE: Ne JAMAIS dire "il n'y a plus de questions" tant que tu n'as pas posé la question ${questions.length}.
-
-=== RÈGLES CRITIQUES ===
+=== RÈGLES ABSOLUES ===
 - Réponds TOUJOURS en AUDIO (parler)
-- GARDE EN MÉMOIRE le numéro de la question actuelle
-- Ne perds JAMAIS le fil même si la conversation dévie
-- Toujours en français, voix claire et professionnelle
+- Pose UNE SEULE question à la fois
+- Attends la réponse complète avant de continuer
+- Sois exigeant mais encourageant
+- Base tes questions sur le contenu fourni
+- Adapte ton niveau au candidat
+- Donne des feedbacks constructifs
+- Toujours en français, ton professionnel
 
-TON: Professionnel, bienveillant, encourageant.`;
+TON: Professionnel, rigoureux mais bienveillant, comme un vrai jury de concours.`;
 
-    console.log('[Oral Quiz Session] Calling OpenAI API...');
+    console.log('[Oral Blanc Session] Calling OpenAI API...');
 
     // Create session with OpenAI Realtime API
     const resp = await fetch('https://api.openai.com/v1/realtime/sessions', {
@@ -135,7 +139,7 @@ TON: Professionnel, bienveillant, encourageant.`;
       },
       body: JSON.stringify({
         model: 'gpt-4o-realtime-preview-2024-12-17',
-        voice: 'onyx',
+        voice: 'alloy',
         modalities: ['audio', 'text'],
         instructions: systemPrompt,
         input_audio_format: 'pcm16',
@@ -151,13 +155,13 @@ TON: Professionnel, bienveillant, encourageant.`;
           silence_duration_ms: 500
         },
         tools: [],
-        temperature: 0.7
+        temperature: 0.8
       }),
     });
 
     if (!resp.ok) {
       const text = await resp.text();
-      console.error('[Oral Quiz Session] OpenAI API error:', resp.status, text);
+      console.error('[Oral Blanc Session] OpenAI API error:', resp.status, text);
       
       // Parse error for better feedback
       let errorMessage = 'OpenAI session creation failed';
@@ -203,14 +207,14 @@ TON: Professionnel, bienveillant, encourageant.`;
     }
 
     const json = await resp.json();
-    console.log('[Oral Quiz Session] Session created successfully');
+    console.log('[Oral Blanc Session] Session created successfully');
     
     return NextResponse.json({
       model: json?.model || 'gpt-4o-realtime-preview-2024-12-17',
       client_secret: json?.client_secret?.value || json?.client_secret,
     });
   } catch (error: any) {
-    console.error('[Oral Quiz Session] Unexpected error:', error);
+    console.error('[Oral Blanc Session] Unexpected error:', error);
     return NextResponse.json({ 
       error: error?.message || 'Internal server error',
       type: error?.constructor?.name || 'Unknown',
@@ -219,3 +223,4 @@ TON: Professionnel, bienveillant, encourageant.`;
     }, { status: 500 });
   }
 }
+
