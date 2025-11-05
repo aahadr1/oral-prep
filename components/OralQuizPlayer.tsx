@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 interface Question {
   question: string;
@@ -13,10 +13,14 @@ interface OralQuizPlayerProps {
   onUserSpoke?: () => void;
 }
 
+export interface OralQuizPlayerRef {
+  cancelActiveResponse: () => void;
+}
+
 type Speaker = 'agent' | 'user' | 'none';
 type ConnectionState = 'disconnected' | 'connecting' | 'connected';
 
-export default function OralQuizPlayer({ questions, onComplete, onUserSpoke }: OralQuizPlayerProps) {
+const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ questions, onComplete, onUserSpoke }, ref) => {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>('none');
   const [agentText, setAgentText] = useState('');
@@ -44,6 +48,18 @@ export default function OralQuizPlayer({ questions, onComplete, onUserSpoke }: O
       dataChannelRef.current.send(JSON.stringify(event));
     }
   };
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    cancelActiveResponse: () => {
+      if (hasActiveResponseRef.current) {
+        console.log('Cancelling active response from parent request');
+        sendEvent({ type: 'response.cancel' });
+        hasActiveResponseRef.current = false;
+        setCurrentSpeaker('none');
+      }
+    }
+  }));
 
   // Convert Float32Array to base64-encoded PCM16
   const floatTo16BitPCM = (float32Array: Float32Array): string => {
@@ -737,4 +753,8 @@ export default function OralQuizPlayer({ questions, onComplete, onUserSpoke }: O
       )}
     </div>
   );
-}
+});
+
+OralQuizPlayer.displayName = 'OralQuizPlayer';
+
+export default OralQuizPlayer;

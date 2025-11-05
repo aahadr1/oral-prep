@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import type { QuestionCard, RevisionResponse } from '@/lib/types';
+import type { OralQuizPlayerRef } from './OralQuizPlayer';
 
 const OralQuizPlayer = dynamic(() => import('./OralQuizPlayer'), {
   ssr: false,
@@ -34,6 +35,7 @@ export default function ContinuousRevisionSession({
   const [hasUserSpoken, setHasUserSpoken] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCriteria, setShowCriteria] = useState(false);
+  const oralPlayerRef = useRef<OralQuizPlayerRef>(null);
 
   const currentCard = cards[currentIndex];
   const progress = ((currentIndex + 1) / cards.length) * 100;
@@ -73,11 +75,19 @@ export default function ContinuousRevisionSession({
     setIsProcessing(true);
 
     try {
+      // Cancel any active response before transitioning
+      if (oralPlayerRef.current) {
+        oralPlayerRef.current.cancelActiveResponse();
+      }
+
       await onCardResponse(currentCard.id, selectedResponse);
 
       // Passer à la question suivante
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(prev => prev + 1);
+        
+        // Wait a bit for the previous response to be cancelled
+        await new Promise(resolve => setTimeout(resolve, 100));
       } else {
         onComplete();
       }
@@ -156,6 +166,7 @@ export default function ContinuousRevisionSession({
         {/* Côté gauche - Agent Vocal (UNE session pour tout le quiz) */}
         <div className="w-1/2 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8 overflow-auto border-r-2 border-gray-200">
           <OralQuizPlayer
+            ref={oralPlayerRef}
             questions={cards.map(card => ({
               question: card.question,
               criteria: card.criteria
