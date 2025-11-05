@@ -227,21 +227,25 @@ export default function OralQuizManager({ userId }: OralQuizManagerProps) {
     setQuestions(updated);
   };
 
-  // Si un quiz est actif, afficher le RevisionManager
+  // Si un quiz est actif, afficher le RevisionManager en plein écran
   if (activeQuizId) {
     return (
-      <div className="space-y-6">
-        <button
-          onClick={() => setActiveQuizId(null)}
-          className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Retour à mes quiz
-        </button>
+      <div className="h-[calc(100vh-8rem)] flex flex-col">
+        <div className="mb-4">
+          <button
+            onClick={() => setActiveQuizId(null)}
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Retour à mes quiz
+          </button>
+        </div>
         
-        <RevisionManager quizId={activeQuizId} userId={userId} />
+        <div className="flex-1 overflow-hidden">
+          <RevisionManager quizId={activeQuizId} userId={userId} />
+        </div>
       </div>
     );
   }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import RevisionStats from './RevisionStats';
-import OralQuizWithRevision from './OralQuizWithRevision';
+import SplitScreenRevision from './SplitScreenRevision';
 import type { 
   QuestionCard, 
   RevisionResponse, 
@@ -211,27 +211,9 @@ export default function RevisionManager({ quizId, userId }: RevisionManagerProps
   // Mode session de révision
   if (mode === 'session' && sessionId && sessionCards.length > 0) {
     return (
-      <div className="space-y-6">
-        {/* En-tête de session */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-800">Session de révision</h2>
-          <button
-            onClick={() => {
-              if (confirm('Voulez-vous vraiment quitter la session en cours ?')) {
-                completeSession();
-              }
-            }}
-            className="text-gray-500 hover:text-gray-700 transition-colors flex items-center"
-          >
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Quitter
-          </button>
-        </div>
-
-        {/* Composant intégré oral quiz + révision */}
-        <OralQuizWithRevision
+      <div className="h-full flex flex-col">
+        {/* Composant split-screen oral quiz + révision */}
+        <SplitScreenRevision
           cards={sessionCards}
           sessionId={sessionId}
           onCardComplete={handleCardComplete}

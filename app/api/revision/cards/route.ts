@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
       quiz_id: quiz_id,
       question: q.question || '',
       criteria: q.criteria || [],
-      L: 0,
-      g: 1,
+      L: 0,      // Retour au nom original
+      g: 1,      // Retour au nom original
       streak: 0,
       lapses: 0,
       is_leech: false,

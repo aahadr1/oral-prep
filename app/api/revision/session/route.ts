@@ -83,7 +83,8 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         quiz_id,
         cards_remaining: eligibleCards.length,
-        current_card_id: eligibleCards[0]?.id || null
+        cards_reviewed: 0,
+        status: 'active'
       })
       .select()
       .single();
@@ -161,7 +162,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { session_id, action, current_card_id } = await request.json();
+    const body = await request.json();
+    const { session_id, action, cards_reviewed } = body;
 
     if (!session_id || !action) {
       return NextResponse.json({ 
@@ -169,13 +171,16 @@ export async function PATCH(request: NextRequest) {
       }, { status: 400 });
     }
 
-    let updateData: any = { updated_at: new Date().toISOString() };
+    let updateData: any = {};
 
     if (action === 'complete') {
       updateData.completed_at = new Date().toISOString();
-      updateData.current_card_id = null;
-    } else if (action === 'update' && current_card_id) {
-      updateData.current_card_id = current_card_id;
+      updateData.status = 'completed';
+    } else if (action === 'update') {
+      // Mise à jour générale de la session (par exemple, cards_reviewed)
+      if (cards_reviewed !== undefined) {
+        updateData.cards_reviewed = cards_reviewed;
+      }
     }
 
     const { error: updateError } = await supabase
