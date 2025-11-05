@@ -135,7 +135,7 @@ TON: Professionnel, bienveillant, encourageant.`;
       },
       body: JSON.stringify({
         model: 'gpt-4o-realtime-preview-2024-12-17',
-        voice: 'onyx',
+        voice: 'alloy',
         modalities: ['audio', 'text'],
         instructions: systemPrompt,
         input_audio_format: 'pcm16',
