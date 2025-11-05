@@ -183,7 +183,7 @@ export default function SplitScreenRevision({
                 Agent Vocal Intelligent
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                L'agent va vous poser la question oralement et écouter votre réponse
+                L&apos;agent va vous poser la question oralement et écouter votre réponse
               </p>
             </div>
 

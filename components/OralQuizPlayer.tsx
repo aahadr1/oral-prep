@@ -353,9 +353,14 @@ export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayer
         setConnectionState('connected');
         
         // Wait for session to be ready before sending initial message
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds max
         const waitForSession = setInterval(() => {
+          attempts++;
+          
           if (sessionReadyRef.current) {
             clearInterval(waitForSession);
+            console.log('Session ready, sending initial message');
             
             // Send initial message to start the quiz with the first question
             if (!hasActiveResponseRef.current) {
@@ -365,15 +370,24 @@ export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayer
                   type: 'message',
                   role: 'user',
                   content: [{
-                    type: 'text',
+                    type: 'input_text',
                     text: 'Bonjour, je suis prêt. Veuillez poser la première question.'
                   }]
                 }
               });
-              sendEvent({ type: 'response.create' });
-              hasActiveResponseRef.current = true;
-              setCurrentSpeaker('agent');
+              
+              // Small delay before creating response to ensure message is processed
+              setTimeout(() => {
+                sendEvent({ type: 'response.create' });
+                hasActiveResponseRef.current = true;
+                setCurrentSpeaker('agent');
+                console.log('Initial response requested');
+              }, 200);
             }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(waitForSession);
+            console.error('Session timeout - forcing initial message');
+            setError('Délai d\'attente de session dépassé. Essayez de rafraîchir la page.');
           }
         }, 100);
       };
