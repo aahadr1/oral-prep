@@ -357,7 +357,7 @@ export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayer
           if (sessionReadyRef.current) {
             clearInterval(waitForSession);
             
-            // Send initial greeting only once
+            // Send initial message to start the quiz with the first question
             if (!hasActiveResponseRef.current) {
               sendEvent({
                 type: 'conversation.item.create',
@@ -366,7 +366,7 @@ export default function OralQuizPlayer({ questions, onComplete }: OralQuizPlayer
                   role: 'user',
                   content: [{
                     type: 'text',
-                    text: 'Bonjour, commençons le quiz.'
+                    text: 'Bonjour, je suis prêt. Veuillez poser la première question.'
                   }]
                 }
               });

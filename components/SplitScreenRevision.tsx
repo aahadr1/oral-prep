@@ -180,16 +180,28 @@ export default function SplitScreenRevision({
                 <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
-                Agent Vocal
+                Agent Vocal Intelligent
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Cliquez sur le bouton pour répondre oralement à la question
+                L'agent va vous poser la question oralement et écouter votre réponse
               </p>
             </div>
 
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex flex-col justify-center">
               {!isOralAgentActive ? (
-                <div className="text-center space-y-4">
+                <div className="text-center space-y-6">
+                  {/* Instructions */}
+                  <div className="bg-green-50 rounded-lg p-4 mx-auto max-w-md">
+                    <h4 className="font-semibold text-green-900 mb-2">Comment ça marche :</h4>
+                    <ol className="text-sm text-green-800 space-y-1 text-left">
+                      <li>1. L&apos;agent va vous <strong>poser la question oralement</strong></li>
+                      <li>2. Cliquez sur le micro pour <strong>répondre à voix haute</strong></li>
+                      <li>3. L&apos;agent <strong>écoute et analyse</strong> votre réponse</li>
+                      <li>4. Vous <strong>évaluez votre performance</strong> avec les boutons</li>
+                    </ol>
+                  </div>
+
+                  {/* Bouton pour démarrer */}
                   <div className="relative">
                     <div className="absolute inset-0 animate-pulse bg-green-400 rounded-full blur-xl opacity-30"></div>
                     <button
@@ -205,21 +217,45 @@ export default function SplitScreenRevision({
                     >
                       <span className="flex items-center">
                         <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {hasAnswered ? 'Déjà répondu' : 'Prendre la parole'}
+                        {hasAnswered ? 'Déjà répondu' : 'Démarrer l\'Agent Vocal'}
                       </span>
                     </button>
                   </div>
+
+                  {/* Info sur les critères */}
+                  {currentCard.criteria && currentCard.criteria.length > 0 && !hasAnswered && (
+                    <div className="bg-blue-50 rounded-lg p-3 mx-auto max-w-md">
+                      <p className="text-xs text-blue-800">
+                        <span className="font-semibold">💡 Astuce :</span> Cette question comporte {currentCard.criteria.length} points clés à mentionner
+                      </p>
+                    </div>
+                  )}
                   
                   {hasAnswered && (
                     <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-lg">
-                      ✓ Réponse enregistrée
+                      <div className="flex items-center justify-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Réponse enregistrée - Évaluez maintenant votre performance
+                      </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="w-full">
+                <div className="w-full h-full">
+                  {/* Indicateur de connexion */}
+                  <div className="mb-4 text-center">
+                    <div className="inline-flex items-center bg-white rounded-lg px-4 py-2 shadow-sm">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                      <span className="text-sm text-gray-700">Agent vocal actif</span>
+                    </div>
+                  </div>
+                  
+                  {/* Player avec toutes les fonctionnalités */}
                   <OralQuizPlayer
                     questions={[{
                       question: currentCard.question,
