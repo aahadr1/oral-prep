@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Oral Quiz - Quiz oraux intelligents",
   description: "Pratiquez vos examens oraux avec notre agent vocal intelligent",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

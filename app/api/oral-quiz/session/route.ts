@@ -203,11 +203,21 @@ PARLE VITE mais CLAIREMENT. Sois HUMAIN mais EFFICACE.`;
     });
   } catch (error: any) {
     console.error('[Oral Quiz Session] Unexpected error:', error);
+    
+    // Provide helpful message for common errors
+    let helpMessage = 'Check server logs for more details';
+    if (error?.message?.includes('fetch') || error?.code === 'ENOTFOUND') {
+      helpMessage = 'Cannot reach OpenAI API. Check your network connection and API key.';
+    } else if (error?.message?.includes('JSON')) {
+      helpMessage = 'Invalid request format. Please refresh and try again.';
+    }
+    
     return NextResponse.json({ 
       error: error?.message || 'Internal server error',
       type: error?.constructor?.name || 'Unknown',
       stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
-      help: 'Check server logs for more details'
+      help: helpMessage,
+      message: 'An unexpected error occurred while creating the session'
     }, { status: 500 });
   }
 }

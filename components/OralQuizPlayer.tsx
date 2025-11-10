@@ -398,7 +398,10 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
       });
       
       if (!response.ok) {
-        throw new Error('Failed to get session token');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || 'Failed to get session token';
+        const solution = errorData.solution || errorData.help;
+        throw new Error(solution ? `${errorMessage}. ${solution}` : errorMessage);
       }
       
       const { client_secret } = await response.json();
