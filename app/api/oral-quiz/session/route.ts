@@ -143,7 +143,7 @@ PARLE VITE mais CLAIREMENT. Sois HUMAIN mais EFFICACE.`;
           silence_duration_ms: 500
         },
         tools: [],
-        temperature: 0.3
+        temperature: 0.6
       }),
     });
 
