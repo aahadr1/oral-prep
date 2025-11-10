@@ -496,21 +496,23 @@ const OralQuizPlayer = forwardRef<OralQuizPlayerRef, OralQuizPlayerProps>(({ que
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
-      // Send offer to OpenAI
-      const openAIResponse = await fetch(
-        `https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${client_secret}`,
-            'Content-Type': 'application/sdp'
-          },
-          body: offer.sdp
-        }
-      );
+      // Send offer through our proxy to avoid CORS issues
+      const openAIResponse = await fetch('/api/oral-quiz/webrtc', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sdp: offer.sdp,
+          client_secret,
+          model: 'gpt-4o-realtime-preview-2024-12-17'
+        })
+      });
       
       if (!openAIResponse.ok) {
-        throw new Error('Failed to connect to OpenAI');
+        const errorText = await openAIResponse.text();
+        console.error('OpenAI WebRTC error:', errorText);
+        throw new Error(`Failed to connect to OpenAI: ${errorText}`);
       }
       
       const answer = await openAIResponse.text();
